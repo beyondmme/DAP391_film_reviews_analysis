@@ -1,0 +1,178 @@
+================================================================================
+BƯỚC 1: KIỂM TRA NHANH CẤU TRÚC DỮ LIỆU
+================================================================================
+Số dòng: 39297
+Số cột: 7
+
+Tên các cột:
+['movie_name', 'review', 'clean_text', 'rating', 'sentiment', 'source_platform', 'language']
+
+Kiểu dữ liệu của từng cột:
+movie_name             str
+review                 str
+clean_text             str
+rating             float64
+sentiment          float64
+source_platform        str
+language               str
+dtype: object
+
+5 dòng đầu tiên:
+                 movie_name                                             review                                         clean_text  rating  sentiment source_platform language
+0  The Shawshank Redemption  It is no wonder that the film has such a high ...  it is no wonder that the film has such a high ...    10.0        NaN            IMDb       en
+1  The Shawshank Redemption  I'm trying to save you money; this is the last...  i'm trying to save you money this is the last ...     NaN        NaN            IMDb       en
+2  The Shawshank Redemption  This movie is not your ordinary Hollywood flic...  this movie is not your ordinary hollywood flic...     NaN        NaN            IMDb       en
+3  The Shawshank Redemption  I have never seen such an amazing film since I...  i have never seen such an amazing film since i...     NaN        NaN            IMDb       en
+4  The Shawshank Redemption  Can Hollywood, usually creating things for ent...  can hollywood, usually creating things for ent...     NaN        NaN            IMDb       en
+
+Ý nghĩa các cột quan trọng:
+- review / clean_text: nội dung nhận xét, bình luận hoặc review phim.
+- rating: điểm đánh giá phim nếu có, thường dùng để phân tích mức độ tích cực/tiêu cực.
+- sentiment: nhãn cảm xúc nếu có; nếu chưa có, có thể suy ra đơn giản từ rating.
+- movie_name: tên phim tương ứng với review.
+- source_platform: nguồn dữ liệu, ví dụ IMDb hoặc YouTube.
+
+================================================================================
+BƯỚC 2: TẠO THÊM ĐẶC TRƯNG TEXT
+================================================================================
+Đã tạo/cập nhật các cột:
+- review_length: độ dài review tính theo số ký tự.
+- word_count: số lượng từ trong review.
+- rating_valid: rating hợp lệ trong khoảng 1 đến 10.
+- sentiment: nhãn cảm xúc, nếu chưa có thì được suy ra từ rating.
+
+Một số dòng sau khi tạo đặc trưng:
+                 movie_name source_platform  rating_valid sentiment  review_length  word_count
+0  The Shawshank Redemption            IMDb          10.0  Positive            645         125
+1  The Shawshank Redemption            IMDb           NaN       NaN           2695         477
+2  The Shawshank Redemption            IMDb           NaN       NaN           1657         295
+3  The Shawshank Redemption            IMDb           NaN       NaN            995         178
+4  The Shawshank Redemption            IMDb           NaN       NaN           5936         971
+
+================================================================================
+BƯỚC 3: TÍNH THỐNG KÊ MÔ TẢ
+================================================================================
+        Variable  Count    Mean  Median  Mode  Standard Deviation   Min    Q1     Q3    IQR     Max
+0  review_length  39297  700.04   221.0  24.0             1017.76  10.0  53.0  946.0  893.0  9934.0
+1     word_count  39297  127.11    45.0   7.0              178.90   2.0  12.0  171.0  159.0  1758.0
+2   rating_valid   1972    8.39     9.0  10.0                2.17   1.0   7.0   10.0    3.0    10.0
+
+Giải thích ý nghĩa:
+- Mean: giá trị trung bình, dễ bị ảnh hưởng bởi outlier.
+- Median: trung vị, phản ánh giá trị ở giữa dữ liệu sau khi sắp xếp.
+- Mode: giá trị xuất hiện nhiều nhất.
+- Standard Deviation: độ lệch chuẩn, cho biết dữ liệu phân tán mạnh hay yếu.
+- Q1, Q3: mốc 25% và 75% của dữ liệu.
+- IQR = Q3 - Q1, dùng để đánh giá độ phân tán và phát hiện outlier.
+
+================================================================================
+BƯỚC 4.1: HISTOGRAM PHÂN BỐ ĐỘ DÀI REVIEW
+================================================================================
+Đã lưu biểu đồ: statistic_visualization_outputs\01_histogram_review_length.png
+Nhận xét:
+- Độ dài review trung bình: 700.04 ký tự.
+- Trung vị độ dài review: 221.00 ký tự.
+- Phân phối có xu hướng lệch phải vì Mean lớn hơn Median.
+- Số review có khả năng là outlier theo ngưỡng Q3 + 1.5*IQR: 2979.
+
+================================================================================
+BƯỚC 4.2: HISTOGRAM PHÂN BỐ SỐ TỪ
+================================================================================
+Đã lưu biểu đồ: statistic_visualization_outputs\02_histogram_word_count.png
+Nhận xét:
+- Số từ trung bình: 127.11.
+- Trung vị số từ: 45.00.
+- Phân phối có xu hướng lệch phải vì Mean lớn hơn Median.
+
+================================================================================
+BƯỚC 4.3: BAR CHART PHÂN BỐ SENTIMENT / RATING
+================================================================================
+Đã lưu biểu đồ: statistic_visualization_outputs\03_bar_sentiment_distribution.png
+Nhận xét:
+sentiment
+Negative     110
+Neutral      261
+Positive    1601
+Name: count, dtype: int64
+- Nhóm sentiment xuất hiện nhiều nhất là: Positive.
+- Biểu đồ này giúp kiểm tra dữ liệu có bị mất cân bằng nhãn hay không.
+
+================================================================================
+BƯỚC 4.4: BOXPLOT ĐỘ DÀI REVIEW THEO SENTIMENT
+================================================================================
+Đã lưu biểu đồ: statistic_visualization_outputs\04_boxplot_review_length_by_sentiment.png
+Thống kê độ dài review theo sentiment:
+           count     mean  median      std
+sentiment                                 
+Negative     110  1490.75  1196.5   974.02
+Neutral      261  1743.69  1465.0  1153.27
+Positive    1601  1570.86  1190.0  1214.09
+Nhận xét:
+- Boxplot giúp so sánh median và độ phân tán độ dài review giữa các nhóm sentiment.
+- Nếu hộp của nhóm nào cao hơn hoặc rộng hơn, nhóm đó có review dài hơn hoặc phân tán mạnh hơn.
+
+================================================================================
+BƯỚC 4.5: SCATTER PLOT RATING VÀ ĐỘ DÀI REVIEW
+================================================================================
+Đã lưu biểu đồ: statistic_visualization_outputs\05_scatter_rating_vs_review_length.png
+Nhận xét:
+- Hệ số tương quan giữa rating và độ dài review: -0.032.
+- Tương quan gần 0, chưa thấy quan hệ tuyến tính rõ ràng giữa rating và độ dài review.
+
+================================================================================
+BƯỚC 4.6: WORD CLOUD VÀ TOP TỪ PHỔ BIẾN
+================================================================================
+Top 30 từ phổ biến:
+      word  count
+0     best  10305
+1      see   8442
+2    first   7781
+3      way   7037
+4     many   6887
+5   people   6744
+6     life   6682
+7     made   6540
+8     been   6440
+9     ever   6068
+10     him   5993
+11   after   5871
+12   think   5599
+13    make   5532
+14   don't   5518
+15   being   5431
+16   never   5419
+17     too   5356
+18   still   5302
+19    love   5153
+20  scenes   5098
+21   every   5055
+22     any   5018
+23   while   4748
+24   world   4735
+25    such   4690
+26     man   4603
+27  acting   4589
+28    over   4566
+29   scene   4531
+Đã lưu biểu đồ: statistic_visualization_outputs\06_bar_top_words.png
+Nhận xét:
+- Các từ phổ biến cho biết người xem thường nhắc đến chủ đề hoặc yếu tố nào của phim.
+- Nếu các từ liên quan đến diễn xuất, cảnh phim, cảm xúc xuất hiện nhiều, dữ liệu có thể hữu ích cho sentiment analysis.
+Đã lưu biểu đồ: statistic_visualization_outputs\07_wordcloud.png
+
+================================================================================
+BƯỚC 5: KẾT LUẬN TỔNG QUAN
+================================================================================
+- Tổng số review/comment sau xử lý: 39297.
+- Số review có rating hợp lệ: 1972.
+- Số review có sentiment: 1972.
+- Độ dài review trung bình là 700.04 ký tự, median là 221.00 ký tự.
+- Số từ trung bình là 127.11, median là 45.00.
+- Phân phối có xu hướng lệch phải vì Mean lớn hơn Median.
+- Rating trung bình là 8.39, median là 9.00, mode là 10.0.
+- Nếu rating tập trung ở mức cao, dữ liệu có xu hướng nghiêng về review tích cực.
+- Nhóm sentiment phổ biến nhất là Positive.
+- Scatter plot và hệ số tương quan giúp đánh giá rating có liên quan đến độ dài review hay không.
+- Nếu tương quan gần 0, độ dài review không nên được kỳ vọng là biến dự báo mạnh cho rating.
+- Kết quả thống kê giúp lựa chọn đặc trưng phù hợp cho bước sentiment analysis hoặc machine learning.
+- Các outlier về độ dài review nên được xem xét trước khi vector hóa văn bản hoặc huấn luyện mô hình.

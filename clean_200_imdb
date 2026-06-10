@@ -1,0 +1,100 @@
+import re
+import pandas as pd
+from bs4 import BeautifulSoup
+
+
+# =========================
+# CONFIG
+# =========================
+INPUT_FILE = "imdb_reviews_top200_matched.csv"
+OUTPUT_FILE = "imdb_reviews_top200_cleaned.csv"
+
+
+# =========================
+# CLEAN TEXT FUNCTION
+# =========================
+def clean_text(text):
+    text = str(text)
+
+    # Remove HTML
+    text = BeautifulSoup(text, "html.parser").get_text()
+
+    # Remove URLs
+    text = re.sub(r"http\S+|www\S+", "", text)
+
+    # Lowercase
+    text = text.lower()
+
+    # Remove special characters but keep basic punctuation
+    text = re.sub(r"[^a-zA-Z0-9\s.,!?']", " ", text)
+
+    # Normalize whitespace
+    text = re.sub(r"\s+", " ", text).strip()
+
+    return text
+
+
+# =========================
+# LOAD DATA
+# =========================
+df = pd.read_csv(INPUT_FILE)
+
+print("Before cleaning:")
+print("Rows:", len(df))
+print("Movies:", df["movie_name"].nunique())
+
+
+# =========================
+# BASIC CLEANING
+# =========================
+
+# Remove missing review text
+df = df.dropna(subset=["review_text"])
+
+# Remove duplicate reviews
+df = df.drop_duplicates(subset=["movie_name", "review_text"])
+
+# Clean review text
+df["clean_text"] = df["review_text"].apply(clean_text)
+
+# Clean length
+df["clean_length"] = df["clean_text"].apply(len)
+
+# Remove too short reviews
+df = df[df["clean_length"] >= 20]
+
+# Standardize source
+df["source_platform"] = "IMDb"
+df["language"] = "en"
+
+# Reorder columns
+df = df[
+    [
+        "movie_name",
+        "review_id",
+        "rating",
+        "review_text",
+        "clean_text",
+        "review_length",
+        "clean_length",
+        "source_platform",
+        "language",
+        "source_url"
+    ]
+]
+
+
+# =========================
+# SAVE
+# =========================
+df.to_csv(
+    OUTPUT_FILE,
+    index=False,
+    encoding="utf-8-sig"
+)
+
+print("\nAfter cleaning:")
+print("Rows:", len(df))
+print("Movies:", df["movie_name"].nunique())
+print("Saved to:", OUTPUT_FILE)
+print(df.head())

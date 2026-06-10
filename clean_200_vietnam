@@ -1,0 +1,153 @@
+import re
+import pandas as pd
+from bs4 import BeautifulSoup
+
+
+# =========================
+# CONFIG
+# =========================
+INPUT_FILE = "youtube_vietnamese_comments_top200_filtered.csv"
+OUTPUT_FILE = "youtube_vietnamese_comments_top200_cleaned.csv"
+
+MIN_COMMENT_LENGTH = 10
+
+
+# =========================
+# CLEAN TEXT FUNCTION
+# =========================
+def clean_vietnamese_text(text):
+    text = str(text)
+
+    # Remove HTML
+    text = BeautifulSoup(text, "html.parser").get_text()
+
+    # Remove URLs
+    text = re.sub(r"http\S+|www\S+", "", text)
+
+    # Lowercase
+    text = text.lower()
+
+    # Remove @mentions
+    text = re.sub(r"@\w+", "", text)
+
+    # Remove hashtags symbol but keep the word
+    text = re.sub(r"#", "", text)
+
+    # Remove emojis and special symbols
+    text = re.sub(
+        r"[^\w\sÀ-ỹà-ỹăâđêôơưÁ-Ỹá-ỹ.,!?]",
+        " ",
+        text
+    )
+
+    # Remove repeated punctuation
+    text = re.sub(r"([.!?])\1+", r"\1", text)
+
+    # Normalize repeated characters
+    # Ví dụ: hayyyyy -> hayy
+    text = re.sub(r"(.)\1{2,}", r"\1\1", text)
+
+    # Normalize whitespace
+    text = re.sub(r"\s+", " ", text).strip()
+
+    return text
+
+
+# =========================
+# LOAD DATA
+# =========================
+df = pd.read_csv(INPUT_FILE)
+
+print("Before cleaning:")
+print("Rows:", len(df))
+print("Movies:", df["movie_name"].nunique())
+
+
+# =========================
+# BASIC CLEANING
+# =========================
+
+# Remove missing comments
+df = df.dropna(subset=["comment_text"])
+
+# Remove duplicate comments
+df = df.drop_duplicates(
+    subset=["movie_name", "comment_text"]
+)
+
+# Clean comment
+df["clean_text"] = df["comment_text"].apply(clean_vietnamese_text)
+
+# Clean length
+df["clean_length"] = df["clean_text"].apply(len)
+
+# Remove too short comments
+df = df[df["clean_length"] >= MIN_COMMENT_LENGTH]
+
+# Remove meaningless short/spam comments
+spam_patterns = [
+    r"^hay$",
+    r"^hay quá$",
+    r"^hay thật$",
+    r"^ok$",
+    r"^nice$",
+    r"^good$",
+    r"^first$",
+    r"^đỉnh$",
+    r"^tuyệt$",
+    r"^haha$",
+    r"^hihi$",
+    r"^lol$",
+    r"^❤+$",
+    r"^\.+$",
+]
+
+for pattern in spam_patterns:
+    df = df[
+        ~df["clean_text"].str.match(
+            pattern,
+            case=False,
+            na=False
+        )
+    ]
+
+# Standardize source and language
+df["source_platform"] = "YouTube"
+df["language"] = "vi"
+
+# Recalculate length
+df["clean_length"] = df["clean_text"].apply(len)
+
+# Reorder columns
+df = df[
+    [
+        "movie_name",
+        "source_platform",
+        "video_id",
+        "video_title",
+        "channel",
+        "comment_text",
+        "clean_text",
+        "comment_length",
+        "clean_length",
+        "like_count",
+        "published_at",
+        "language"
+    ]
+]
+
+
+# =========================
+# SAVE
+# =========================
+df.to_csv(
+    OUTPUT_FILE,
+    index=False,
+    encoding="utf-8-sig"
+)
+
+print("\nAfter cleaning:")
+print("Rows:", len(df))
+print("Movies:", df["movie_name"].nunique())
+print("Saved to:", OUTPUT_FILE)
+print(df.head())
